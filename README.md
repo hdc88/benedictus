@@ -1,4 +1,4 @@
-# Benedictus — GABC Chant Editor
+# Benedictus - GABC Chant Editor
 
 Editor web per la trascrizione e l'impaginazione del canto detto gregoriano in notazione
 quadrata, a partire da sorgenti in formato [GABC](http://gregorio-project.github.io/gabc/index.html).
@@ -63,13 +63,13 @@ soggetta alla propria licenza originale:
 
 | Libreria | Versione | Licenza | Utilizzo |
 |---|---|---|---|
-| [Exsurge](https://github.com/frmspencer/exsurge) | — | MIT | Rendering della notazione musicale gregoriana |
+| [Exsurge](https://github.com/frmspencer/exsurge) | - | MIT | Rendering della notazione musicale gregoriana |
 | [jQuery](https://jquery.com/) | 1.7 | MIT | Manipolazione DOM |
 | [jQuery UI](https://jqueryui.com/) | 1.10.3 | MIT | Componenti UI |
-| [Hypher](https://github.com/bramstein/hypher) (`jquery.hypher.js`) | — | BSD-2-Clause | Sillabazione automatica |
+| [Hypher](https://github.com/bramstein/hypher) (`jquery.hypher.js`) | - | BSD-2-Clause | Sillabazione automatica |
 | [jsPDF](https://github.com/parallax/jsPDF) | 2.5.1 | MIT | Esportazione PDF |
 | [html2canvas](https://github.com/niklasvh/html2canvas) | 1.4.1 | MIT | Rasterizzazione per l'export PNG/PDF |
-| [saveSvgAsPng](https://github.com/exupero/saveSvgAsPng) | — | MIT | Esportazione SVG/PNG |
+| [saveSvgAsPng](https://github.com/exupero/saveSvgAsPng) | - | MIT | Esportazione SVG/PNG |
 
 I font inclusi in `fonts/` (Garamond, Book Antiqua, Times New Roman, Arial,
 Palatino) sono font di sistema ridistribuiti per garantire una resa grafica
@@ -85,7 +85,7 @@ Internet in fase di esecuzione.
 
 ## Licenza
 
-Il codice originale di questo progetto è distribuito con licenza **MIT** —
+Il codice originale di questo progetto è distribuito con licenza **MIT** -
 vedi il file [`LICENSE`](./LICENSE).
 
 Le librerie di terze parti incluse nel repository mantengono le proprie
@@ -93,6 +93,6 @@ licenze originali, elencate nella tabella sopra.
 
 ## Citazione
 
-Correggia, E. (2025). Benedictus — GABC Chant Editor [Software]. 
+Correggia, E. (2025). Benedictus - GABC Chant Editor [Software]. 
 Disponibile su: https://github.com/hdc88/benedictus
 
