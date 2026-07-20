@@ -1,0 +1,143 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Benedictus - GABC Editor</title>
+  <link rel="icon" type="image/png" href="icona.png">
+ 
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <script src="jquery.min.js" type="text/javascript"></script>
+  <script src="jquery-ui-1.10.3.custom.min.js" type="text/javascript"></script>
+ 
+  <script src="jquery.hypher.js"></script>
+ 
+  <script src="jspdf.umd.min.js"></script>
+  <script src="html2canvas.min.js"></script>
+  <script src="exsurge.min.js"></script>
+  <script src="saveSvgAsPng.js"></script>
+  <script src="patterns/la-hypher.js"></script>
+</head>
+<body class='sans'>
+
+<div id="custom-header-bar">
+    <img src="Benedictus.png" alt="Benedictus" id="header-logo">
+</div>
+
+<div id="main-content">
+    <div class="container-centered">
+        <br><br><br>
+        <div class="hide-print">
+            <div style="width:100%;text-align:center;padding: 10px 0;">
+                <a href="#" id="lnkShowText">Visualizza Testo</a>
+            </div>
+           
+            <div id="editor-container">
+                <label for="editor">GABC Integrato</label>
+                <textarea id="editor" spellcheck="false" style="width:100%; box-sizing: border-box; min-height: 300px;"></textarea>
+            </div>
+            
+            <div style="width:100%;text-align:center;padding: 10px 0;">
+                <span style="font-family: 'Garamond Premier Pro', Garamond, serif; font-size: 0.95em;">Raggruppa Strofe</span>
+                <input type="checkbox" id="group-verses-toggle" style="cursor: pointer;">
+            </div>
+
+            <div class="quick-links" style="margin-top: 10px; margin-bottom: 20px; text-align:center;">
+                <a href="#" id="lnkCopyGabc">Copia GABC</a> |
+                <a href="#" id="lnkDownloadGabc">Scarica .gabc</a>
+            </div>
+
+            <div id="chant-parent2">
+                <div id="chant-parent">
+                    <div id="chant-pad">
+                        <div id="chant-preview" class="clickable"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="settings-sidebar">
+    <div class="sidebar-section header-section" style="text-align: center;">
+        <h2>Impostazioni Grafiche</h2>
+    </div>
+
+    <div class="sidebar-section" style="text-align: center;">
+        <h3>Modalità Scura</h3>
+        <div class="control-row">
+            <label for="dark-mode-toggle">Attiva Dark Mode</label>
+            <input type="checkbox" id="dark-mode-toggle">
+        </div>
+    </div>
+
+    <div class="sidebar-section" style="text-align: center;">
+        <h3>Colori</h3>
+        <div class="color-control">
+            <label for="inputStaffColor">Colore Rigo:</label>
+            <input type="color" id="inputStaffColor" value="#000000">
+        </div>
+        <div class="color-control">
+            <label for="inputRubricColor">Colore Rubriche:</label>
+            <input type="color" id="inputRubricColor" value="#cc0000">
+        </div>
+        <div class="color-control">
+            <label for="inputDropCapColor">Colore Capolettera:</label>
+            <input type="color" id="inputDropCapColor" value="#000000">
+        </div>
+    </div>
+
+    <div class="sidebar-section" style="text-align: center;">
+        <h3>Dimensioni e Spaziatura</h3>
+        <label for="scaleSlider">Dimensione Rigo: <span id="scaleVal">1.4</span></label>
+        <div class="slider-container">
+            <input type="range" id="scaleSlider" min="0.5" max="2.5" step="0.1" value="1.4">
+        </div>
+        <label for="spacingSlider">Spaziatura Note: <span id="spacingVal">0.8</span></label>
+        <div class="slider-container">
+            <input type="range" id="spacingSlider" min="0.2" max="2.0" step="0.1" value="0.8">
+        </div>
+        <label for="dropCapSlider">Dimensione Capolettera: <span id="dropCapVal">1.0</span></label>
+        <div class="slider-container">
+            <input type="range" id="dropCapSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+        </div>
+	<label for="lyricSizeSlider">Dimensione Testo: <span id="lyricSizeVal">17</span></label>
+	<div class="slider-container">
+    	    <input type="range" id="lyricSizeSlider" min="10" max="32" step="1" value="17">
+	</div>
+    </div>
+   
+    <div class="sidebar-section" style="text-align: center;">
+        <h3>Font Testo</h3>
+        <select id="text-font" style="width: 100%; padding: 5px;">
+            <option value="Garamond Premier Pro">Garamond (Predefinito)</option>
+            <option value="Book Antiqua">Book Antiqua</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Arial">Arial</option>
+            <option value="Palatino">Palatino</option>
+        </select>
+    </div>
+
+    <div class="sidebar-section" style="text-align: center;">
+        <h3>Esportazione Avanzata</h3>
+        <div class="btn-group">
+            <button id="export-png-full" class="btn-export">PNG (Intero)</button>
+            <button id="export-png-cropped" class="btn-export">PNG (Ritagliato)</button>
+        </div>
+        <div class="btn-group" style="margin-top: 5px;">
+            
+            <button id="export-svg-cropped" class="btn-export">SVG</button>
+        </div>
+        <div class="btn-group" style="margin-top: 5px;">
+            <button id="export-pdf-full" class="btn-export">PDF A4</button>
+            <button id="export-pdf-cropped" class="btn-export">PDF (Ritagliato)</button>
+        </div>
+    </div>
+
+    <div class="sidebar-section" style="text-align: center;">
+        <p>© <a href="https://www.enricocorreggia.net" id="lnkCredits">Enrico Correggia</a> 2025</p>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

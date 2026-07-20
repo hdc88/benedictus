@@ -1,0 +1,433 @@
+/* ============================================================
+   Font locali incorporati (offline-first, per exe Tauri)
+   ============================================================ */
+@font-face {
+    font-family: 'Garamond Premier Pro';
+    src: url('fonts/Garamond-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Garamond Premier Pro';
+    src: url('fonts/Garamond-Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Garamond Premier Pro';
+    src: url('fonts/Garamond-Italic.ttf') format('truetype');
+    font-weight: normal;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Book Antiqua';
+    src: url('fonts/BookAntiqua-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Book Antiqua';
+    src: url('fonts/BookAntiqua-Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Book Antiqua';
+    src: url('fonts/BookAntiqua-Italic.ttf') format('truetype');
+    font-weight: normal;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Book Antiqua';
+    src: url('fonts/BookAntiqua-BoldItalic.ttf') format('truetype');
+    font-weight: bold;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Times New Roman';
+    src: url('fonts/TimesNewRoman-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Times New Roman';
+    src: url('fonts/TimesNewRoman-Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Times New Roman';
+    src: url('fonts/TimesNewRoman-Italic.ttf') format('truetype');
+    font-weight: normal;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Times New Roman';
+    src: url('fonts/TimesNewRoman-BoldItalic.ttf') format('truetype');
+    font-weight: bold;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Arial';
+    src: url('fonts/Arial-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Arial';
+    src: url('fonts/Arial-Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Arial';
+    src: url('fonts/Arial-Italic.ttf') format('truetype');
+    font-weight: normal;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Arial';
+    src: url('fonts/Arial-BoldItalic.ttf') format('truetype');
+    font-weight: bold;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Palatino';
+    src: url('fonts/Palatino-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    --bg-color: #ffffff;
+    --text-color: #333333;
+    --sidebar-bg: #f8f9fa;
+    --sidebar-border: #ddd;
+    --input-bg: #ffffff;
+    --input-border: #ccc;
+    --staff-default: #000000;
+    --rubric-default: #cc0000;
+    --dropcap-default: #000000;
+    --header-bg: #4a0e12; /* Benedictus Bordeaux */
+}
+
+/* DARK MODE VARIABLES */
+body.dark-mode {
+    --bg-color: #121212;
+    --text-color: #e0e0e0;
+    --sidebar-bg: #1e1e1e;
+    --sidebar-border: #333;
+    --input-bg: #2d2d2d;
+    --input-border: #555;
+    --staff-default: #ffffff;
+    --rubric-default: #a60606;
+    --dropcap-default: #ffffff;
+}
+
+/* RESET E BASE */
+* {
+    box-sizing: border-box; 
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Garamond Premier Pro', 'Garamond', 'Times New Roman', serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    overflow: hidden; 
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* HEADER */
+#custom-header-bar {
+    background-color: var(--header-bg);
+    height: 80px;
+    display: flex;
+    justify-content: center; 
+    align-items: center; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 10;
+    position: relative;
+}
+
+#header-logo {
+    height: 70px; 
+    transform: scale(0.7);
+    transform-origin: center center;
+}
+
+/* LAYOUT PRINCIPALE (Desktop) */
+#main-content {
+    position: absolute;
+    top: 80px;
+    left: 0;
+    bottom: 0;
+    right: 320px;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+#settings-sidebar {
+    position: absolute;
+    top: 80px;
+    right: 0;
+    bottom: 0;
+    width: 320px;
+    background-color: var(--sidebar-bg);
+    border-left: 1px solid var(--sidebar-border);
+    padding: 15px;
+    overflow-y: auto;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+    transition: background-color 0.3s;
+    z-index: 5;
+}
+
+/* CONTENITORE CENTRATO */
+.container-centered {
+    max-width: 1000px; 
+    margin: 0 auto;    
+    width: 100%;
+}
+
+#editor-container {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* STILE ELEMENTI SIDEBAR */
+.sidebar-section {
+    margin-bottom: 25px;
+    border-bottom: 1px solid var(--sidebar-border);
+    padding-bottom: 15px;
+}
+
+.sidebar-section h3 {
+    margin-top: 0;
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    color: var(--text-color);
+    font-family: 'Garamond Premier Pro', 'Garamond', serif;
+}
+
+.sidebar-section label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    font-size: 0.9em;
+    font-family: 'Garamond Premier Pro', 'Garamond', serif;
+}
+
+/* INPUT E CONTROLLI */
+textarea, select, input[type="text"] {
+    width: 100%;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    border: 1px solid var(--input-border);
+    padding: 10px;
+    font-family: 'Garamond Premier Pro', 'Garamond', monospace;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+textarea {
+    min-height: 180px; 
+    resize: vertical;
+}
+
+select {
+    cursor: pointer;
+}
+
+.control-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.color-control {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+input[type="color"] {
+    border: none;
+    width: 40px;
+    height: 30px;
+    background: none;
+    cursor: pointer;
+}
+
+/* SLIDERS */
+.slider-container {
+    margin-bottom: 15px;
+}
+input[type="range"] {
+    width: 100%;
+}
+
+/* PULSANTI EXPORT */
+.btn-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.btn-export {
+    flex: 1;
+    padding: 8px;
+    font-size: 0.85em;
+    cursor: pointer;
+    background-color: #e0e0e0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    transition: background 0.2s;
+    font-family: 'Garamond Premier Pro', 'Garamond', serif;
+}
+.btn-export:hover {
+    background-color: #d0d0d0;
+}
+body.dark-mode .btn-export {
+    background-color: #444;
+    border-color: #555;
+    color: #fff;
+}
+body.dark-mode .btn-export:hover {
+    background-color: #555;
+}
+
+/* ANTEPRIMA CHANT */
+#chant-preview {
+    margin-top: 20px;
+    text-align: center;
+    min-height: 200px;
+    max-width: 100%;
+    overflow: visible;
+}
+
+#chant-preview > div {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+#chant-preview svg {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+/* SVG Overrides - CORREZIONE COMPLETA PER DARK MODE */
+
+/* Testo: sempre nero in light, bianco in dark */
+#chant-preview svg text {
+    font-family: var(--lyric-font, 'Garamond') !important;
+
+}
+
+body.dark-mode #chant-preview svg text:not(.dropCap) {
+    fill: #ffffff !important;
+}
+
+/* Note e chiavi (path): nere in light, bianche in dark */
+#chant-preview svg path {
+    stroke: #000000;
+    fill: #000000;
+}
+
+body.dark-mode #chant-preview svg path {
+    stroke: #ffffff;
+    fill: #ffffff;
+}
+
+/* Linee del rigo (gestite da JS, ma rinforziamo qui) */
+#chant-preview svg line.staffLine {
+    /* Il colore viene impostato da JavaScript */
+}
+
+body[data-font="Times New Roman"] #chant-preview svg text {
+    font-family: 'Times New Roman', serif !important;
+}
+
+body[data-font="Book Antiqua"] #chant-preview svg text {
+    font-family: 'Book Antiqua', serif !important;
+}
+
+body[data-font="Arial"] #chant-preview svg text {
+    font-family: Arial, sans-serif !important;
+}
+
+body[data-font="Palatino"] #chant-preview svg text {
+    font-family: 'Palatino', serif !important;
+}
+
+
+/* QUICK LINKS */
+.quick-links {
+    font-family: 'Garamond Premier Pro', 'Garamond', serif;
+}
+
+.quick-links a {
+    color: var(--text-color);
+    text-decoration: none;
+}
+
+.quick-links a:hover {
+    text-decoration: underline;
+}
+
+/* RESPONSIVE (Cellulari/Tablet) */
+@media (max-width: 800px) {
+    body { overflow: auto; } 
+    
+    #main-content {
+        position: relative;
+        right: 0;
+        top: 0;
+        bottom: auto;
+        width: 100%;
+    }
+    
+    #settings-sidebar {
+        position: relative;
+        width: 100%;
+        top: 0;
+        border-left: none;
+        border-top: 1px solid var(--sidebar-border);
+        height: auto;
+        padding-bottom: 50px;
+    }
+    
+    #twoBoxes table, #twoBoxes tr, #twoBoxes td {
+        display: block;
+        width: 100% !important;
+        padding: 0 !important;
+    }
+    #twoBoxes td { margin-bottom: 15px; }
+}
+/* ANNOTATION: il colore viene gestito direttamente da JavaScript */
+#chant-preview svg text.annotation {
+    /* Nessuna regola di fill qui - JS gestisce tutto */
+}
