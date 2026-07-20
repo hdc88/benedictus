@@ -1,0 +1,34 @@
+{
+  "title": "Benedictus - GABC Editor",
+  "creators": [
+    {
+      "name": "Correggia, Enrico",
+      "orcid": "0009-0009-2352-3721",
+      "affiliation": "University of Trento",
+      "affiliation_identifier": {
+        "scheme": "ror",
+        "identifier": "https://ror.org/05trd4x28"
+      }
+    }
+  ],
+  "description": "An offline web-based editor for the transcription and typeset layout of Gregorian chant in square-note notation from GABC source files. It enables real-time editing of both text and notation, customisation of visual parameters (colours, dimensions, fonts), and exportation of the output in PNG, SVG, and PDF formats.",
+  "keywords": [
+    "GABC",
+    "Gregorian chant",
+    "square notation",
+    "music notation",
+    "chant editor",
+    "music engraving"
+  ],
+  "license": "MIT",
+  "upload_type": "software",
+  "access_right": "open",
+  "language": "eng",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/hdc88/benedictus",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    }
+  ]
+}

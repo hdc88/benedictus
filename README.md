@@ -93,6 +93,7 @@ licenze originali, elencate nella tabella sopra.
 
 ## Citazione
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21461835.svg)](https://doi.org/10.5281/zenodo.21461835)
 Correggia, E. (2025). Benedictus - GABC Chant Editor [Software]. 
 Disponibile su: https://github.com/hdc88/benedictus
 
