@@ -1329,6 +1329,119 @@ function downloadBlob(blob, filename) {
     setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
 }
 
+// =========================================================
+// SALVA CON NOME
+// =========================================================
+// Con la File System Access API (Chrome, Edge, app Tauri su Windows) ogni
+// salvataggio apre la finestra "Salva con nome". Dove non è disponibile
+// (es. Firefox) il file viene scaricato come prima.
+// La finestra va aperta finché vale il clic dell'utente: se il lavoro
+// precedente è durato troppo, si chiede un clic di conferma.
+
+var SAVE_TYPES = {
+    pdf:        { description: 'Documento PDF', accept: { 'application/pdf': ['.pdf'] } },
+    png:        { description: 'Immagine PNG', accept: { 'image/png': ['.png'] } },
+    svg:        { description: 'Immagine SVG', accept: { 'image/svg+xml': ['.svg'] } },
+    gabc:       { description: 'File GABC', accept: { 'text/plain': ['.gabc'] } },
+    benedictus: { description: 'Raccolta Benedictus', accept: { 'application/json': ['.benedictus'] } }
+};
+
+function saveCancelled() {
+    var e = new Error('Salvataggio annullato');
+    e.cancelled = true;
+    return e;
+}
+
+// Esegue fn() (che apre una finestra di sistema); se il browser la rifiuta
+// perché il clic è "scaduto", mostra un pulsante per ripetere l'azione.
+function withUserActivation(fn, label) {
+    return Promise.resolve().then(fn).catch(function(e) {
+        if (e && e.name === 'AbortError') throw saveCancelled();
+        if (!e || (e.name !== 'SecurityError' && e.name !== 'NotAllowedError')) throw e;
+        showBusy(null);
+        return new Promise(function(resolve, reject) {
+            var modal = $(
+                '<div class="bn-modal" role="dialog" aria-modal="true"><div class="bn-modal-box" style="max-width:460px">' +
+                '<h2>Salva</h2><p class="sub"></p>' +
+                '<div class="bn-modal-actions">' +
+                '<button class="bn-btn" data-act="cancel">Annulla</button>' +
+                '<button class="bn-btn primary" data-act="ok">Scegli dove salvare…</button>' +
+                '</div></div></div>');
+            modal.find('.sub').text(label || 'Il file è pronto.');
+            modal.on('click', '[data-act=cancel]', function() { modal.remove(); reject(saveCancelled()); });
+            modal.on('click', '[data-act=ok]', function() {
+                modal.remove();
+                Promise.resolve().then(fn).then(resolve, function(err) {
+                    reject(err && err.name === 'AbortError' ? saveCancelled() : err);
+                });
+            });
+            $('body').append(modal);
+            modal.find('[data-act=ok]').focus();
+        });
+    });
+}
+
+// Chiede dove salvare un file. Risolve con { handle } oppure { download: nome }.
+function chooseSaveFile(suggestedName) {
+    if (typeof window.showSaveFilePicker !== 'function') {
+        return Promise.resolve({ download: suggestedName });
+    }
+    var ext = (suggestedName.split('.').pop() || '').toLowerCase();
+    var opts = { suggestedName: suggestedName, id: 'benedictus-' + ext };
+    if (SAVE_TYPES[ext]) opts.types = [SAVE_TYPES[ext]];
+    return withUserActivation(function() {
+        return window.showSaveFilePicker(opts);
+    }, 'Il file "' + suggestedName + '" è pronto.').then(function(handle) {
+        return { handle: handle };
+    }, function(e) {
+        if (e && e.cancelled) throw e;
+        console.warn('Salva con nome non disponibile, si scarica il file:', e);
+        return { download: suggestedName };
+    });
+}
+
+// Più file insieme (es. una pagina per file): si sceglie una cartella
+function chooseSaveFolder(count, kind) {
+    if (typeof window.showDirectoryPicker !== 'function') {
+        return Promise.resolve({ download: true });
+    }
+    return withUserActivation(function() {
+        return window.showDirectoryPicker({ id: 'benedictus-cartella', mode: 'readwrite' });
+    }, count + ' file ' + kind + ' pronti: scegli la cartella in cui salvarli.').then(function(dir) {
+        return { dir: dir };
+    }, function(e) {
+        if (e && e.cancelled) throw e;
+        console.warn('Scelta della cartella non disponibile, si scaricano i file:', e);
+        return { download: true };
+    });
+}
+
+function writeBlob(target, blob, name) {
+    if (target.handle) {
+        return target.handle.createWritable().then(function(w) {
+            return w.write(blob).then(function() { return w.close(); });
+        });
+    }
+    if (target.dir) {
+        return target.dir.getFileHandle(name, { create: true }).then(function(h) {
+            return h.createWritable();
+        }).then(function(w) {
+            return w.write(blob).then(function() { return w.close(); });
+        });
+    }
+    downloadBlob(blob, typeof target.download === 'string' ? target.download : name);
+    return Promise.resolve();
+}
+
+// Scelta del file + scrittura, per contenuti già pronti
+function saveBlobAs(blob, suggestedName) {
+    return chooseSaveFile(suggestedName).then(function(t) { return writeBlob(t, blob, suggestedName); });
+}
+
+function pdfBlob(pdf) {
+    return pdf.output('blob');
+}
+
 // Rendering con colori di stampa, alla stessa larghezza dell'anteprima
 function renderForExport() {
     var src = $('#editor').val();
@@ -1352,6 +1465,8 @@ function renderPagesForExport() {
 
 function exportError(e) {
     showBusy(null);
+    if (e && e.cancelled) return;      // l'utente ha chiuso la finestra "Salva con nome"
+
     console.error(e);
     alert('Errore durante l\'esportazione: ' + (e && e.message ? e.message : e));
 }
@@ -1466,17 +1581,26 @@ function svgToPngBlob(svg, pixelRatio) {
     });
 }
 
+// Pagine di un brano: un file per pagina (con più pagine si sceglie la cartella)
+function chooseTargetForPages(n, base, ext, kind) {
+    return n > 1 ? chooseSaveFolder(n, kind) : chooseSaveFile(base + '.' + ext);
+}
+
 function exportPNG() {
     showBusy('Esportazione PNG…');
     var family = userSettings.fontFamily;
+    var out, data, base = exportBaseName();
     Promise.all([renderPagesForExport(), loadFontData(family)]).then(function(r) {
-        var out = r[0], data = r[1], base = exportBaseName();
+        out = r[0]; data = r[1];
+        return chooseTargetForPages(out.svgs.length, base, 'png', 'PNG');
+    }).then(function(target) {
+        showBusy('Esportazione PNG…');
         var chain = Promise.resolve();
         out.svgs.forEach(function(svg, i) {
             chain = chain.then(function() {
                 embedFontsInSvg(svg, family, data);
                 return svgToPngBlob(svg, 300 / 96).then(function(blob) {
-                    downloadBlob(blob, base + (out.svgs.length > 1 ? '-p' + (i + 1) : '') + '.png');
+                    return writeBlob(target, blob, base + (out.svgs.length > 1 ? '-p' + (i + 1) : '') + '.png');
                 });
             });
         });
@@ -1485,14 +1609,15 @@ function exportPNG() {
 }
 
 function exportPNGCropped() {
-    showBusy('Esportazione PNG…');
     var family = userSettings.fontFamily;
-    Promise.all([renderForExport(), loadFontData(family)]).then(function(r) {
-        var svg = buildCroppedSvg(r[0], 10);
-        embedFontsInSvg(svg, family, r[1]);
-        return svgToPngBlob(svg, 3).then(function(blob) {
-            downloadBlob(blob, exportBaseName() + '-ritagliato.png');
-        });
+    var name = exportBaseName() + '-ritagliato.png';
+    chooseSaveFile(name).then(function(target) {
+        showBusy('Esportazione PNG…');
+        return Promise.all([renderForExport(), loadFontData(family)]).then(function(r) {
+            var svg = buildCroppedSvg(r[0], 10);
+            embedFontsInSvg(svg, family, r[1]);
+            return svgToPngBlob(svg, 3);
+        }).then(function(blob) { return writeBlob(target, blob, name); });
     }).then(function() { showBusy(null); }).catch(exportError);
 }
 
@@ -1503,29 +1628,36 @@ function exportPNGCropped() {
 function exportSVG() {
     showBusy('Esportazione SVG…');
     var family = userSettings.fontFamily;
+    var out, data, base = exportBaseName();
     Promise.all([renderPagesForExport(), loadFontData(family)]).then(function(r) {
-        var out = r[0], base = exportBaseName();
+        out = r[0]; data = r[1];
+        return chooseTargetForPages(out.svgs.length, base, 'svg', 'SVG');
+    }).then(function(target) {
+        var chain = Promise.resolve();
         out.svgs.forEach(function(svg, i) {
-            svg.setAttribute('width', out.geom.wmm + 'mm');
-            svg.setAttribute('height', out.geom.hmm + 'mm');
-            embedFontsInSvg(svg, family, r[1]);
-            downloadBlob(new Blob([serializeSvg(svg)], { type: 'image/svg+xml;charset=utf-8' }),
-                         base + (out.svgs.length > 1 ? '-p' + (i + 1) : '') + '.svg');
+            chain = chain.then(function() {
+                svg.setAttribute('width', out.geom.wmm + 'mm');
+                svg.setAttribute('height', out.geom.hmm + 'mm');
+                embedFontsInSvg(svg, family, data);
+                return writeBlob(target, new Blob([serializeSvg(svg)], { type: 'image/svg+xml;charset=utf-8' }),
+                                 base + (out.svgs.length > 1 ? '-p' + (i + 1) : '') + '.svg');
+            });
         });
-        showBusy(null);
-    }).catch(exportError);
+        return chain;
+    }).then(function() { showBusy(null); }).catch(exportError);
 }
 
 function exportSVGCropped() {
-    showBusy('Esportazione SVG…');
     var family = userSettings.fontFamily;
-    Promise.all([renderForExport(), loadFontData(family)]).then(function(r) {
-        var svg = buildCroppedSvg(r[0], 10);
-        embedFontsInSvg(svg, family, r[1]);
-        downloadBlob(new Blob([serializeSvg(svg)], { type: 'image/svg+xml;charset=utf-8' }),
-                     exportBaseName() + '-ritagliato.svg');
-        showBusy(null);
-    }).catch(exportError);
+    var name = exportBaseName() + '-ritagliato.svg';
+    chooseSaveFile(name).then(function(target) {
+        showBusy('Esportazione SVG…');
+        return Promise.all([renderForExport(), loadFontData(family)]).then(function(r) {
+            var svg = buildCroppedSvg(r[0], 10);
+            embedFontsInSvg(svg, family, r[1]);
+            return writeBlob(target, new Blob([serializeSvg(svg)], { type: 'image/svg+xml;charset=utf-8' }), name);
+        });
+    }).then(function() { showBusy(null); }).catch(exportError);
 }
 
 // ---------------------------------------------------------
@@ -1582,9 +1714,13 @@ function setPdfProperties(pdf) {
 
 function exportPDF() {
     if (!pdfAvailable()) return;
-    showBusy('Generazione PDF vettoriale…');
     var family = userSettings.fontFamily;
-    Promise.all([renderPagesForExport(), loadFontData(family)]).then(function(r) {
+    var name = exportBaseName() + '.pdf', target;
+    chooseSaveFile(name).then(function(t) {
+        target = t;
+        showBusy('Generazione PDF vettoriale…');
+        return Promise.all([renderPagesForExport(), loadFontData(family)]);
+    }).then(function(r) {
         var out = r[0], geom = out.geom;
         var pdf = newPdf(geom.wmm, geom.hmm);
         registerPdfFonts(pdf, family, r[1]);
@@ -1596,18 +1732,19 @@ function exportPDF() {
                 return drawSvgOnPdf(pdf, svg, 0, 0, geom.wmm * PT_PER_MM, geom.hmm * PT_PER_MM);
             });
         });
-        return chain.then(function() {
-            pdf.save(exportBaseName() + '.pdf');
-            showBusy(null);
-        });
-    }).catch(exportError);
+        return chain.then(function() { return writeBlob(target, pdfBlob(pdf), name); });
+    }).then(function() { showBusy(null); }).catch(exportError);
 }
 
 function exportPDFCropped() {
     if (!pdfAvailable()) return;
-    showBusy('Generazione PDF vettoriale…');
     var family = userSettings.fontFamily;
-    Promise.all([renderForExport(), loadFontData(family)]).then(function(r) {
+    var name = exportBaseName() + '-ritagliato.pdf', target;
+    chooseSaveFile(name).then(function(t) {
+        target = t;
+        showBusy('Generazione PDF vettoriale…');
+        return Promise.all([renderForExport(), loadFontData(family)]);
+    }).then(function(r) {
         var svg = buildCroppedSvg(r[0], 10);
         var wmm = parseFloat(svg.getAttribute('width')) / PX_PER_MM;
         var hmm = parseFloat(svg.getAttribute('height')) / PX_PER_MM;
@@ -1615,10 +1752,9 @@ function exportPDFCropped() {
         registerPdfFonts(pdf, family, r[1]);
         setPdfProperties(pdf);
         return drawSvgOnPdf(pdf, svg, 0, 0, wmm * PT_PER_MM, hmm * PT_PER_MM).then(function() {
-            pdf.save(exportBaseName() + '-ritagliato.pdf');
-            showBusy(null);
+            return writeBlob(target, pdfBlob(pdf), name);
         });
-    }).catch(exportError);
+    }).then(function() { showBusy(null); }).catch(exportError);
 }
 
 // =========================================================
@@ -1642,7 +1778,8 @@ function copyGabcToClipboard() {
 
 function downloadGabcFile() {
     var gabc = $("#editor").val();
-    downloadBlob(new Blob([gabc], { type: 'text/plain;charset=utf-8' }), exportBaseName() + '.gabc');
+    var name = lastFileName && /\.gabc$/i.test(lastFileName) ? lastFileName : exportBaseName() + '.gabc';
+    saveBlobAs(new Blob([gabc], { type: 'text/plain;charset=utf-8' }), name).catch(exportError);
 }
 
 function loadGabcText(text, fileName) {

@@ -207,8 +207,9 @@ function saveCollectionFile() {
         return;
     }
     var json = JSON.stringify(collectionToJSON(), null, 2);
-    downloadBlob(new Blob([json], { type: 'application/json;charset=utf-8' }), collectionBaseName() + '.benedictus');
-    collectionDirty = false;
+    saveBlobAs(new Blob([json], { type: 'application/json;charset=utf-8' }), collectionBaseName() + '.benedictus')
+        .then(function() { collectionDirty = false; })
+        .catch(exportError);
 }
 
 function openCollectionFile(file) {
@@ -898,9 +899,14 @@ function setLibrettoPdfProperties(pdf) {
 // PDF con le pagine in ordine di lettura
 function exportLibrettoPDF() {
     if (!pdfAvailable()) return;
-    showBusy('Generazione del libretto…');
+    if (!collection.items.length) { alert('La raccolta è vuota.'); return; }
     var family = userSettings.fontFamily;
-    Promise.all([renderLibrettoForExport(), loadFontData(family)]).then(function(r) {
+    var name = collectionBaseName() + '.pdf', target;
+    chooseSaveFile(name).then(function(t) {
+        target = t;
+        showBusy('Generazione del libretto…');
+        return Promise.all([renderLibrettoForExport(), loadFontData(family)]);
+    }).then(function(r) {
         var out = r[0], geom = out.geom;
         var w = geom.wmm * PT_PER_MM, h = geom.hmm * PT_PER_MM;
         var pdf = newPdf(geom.wmm, geom.hmm);
@@ -914,10 +920,8 @@ function exportLibrettoPDF() {
                 return drawSvgOnPdf(pdf, p.svg, 0, 0, w, h);
             });
         });
-        return chain.then(function() {
-            pdf.save(collectionBaseName() + '.pdf');
-            showBusy(null);
-        });
+        return chain.then(function() { return writeBlob(target, pdfBlob(pdf), name); })
+                    .then(function() { showBusy(null); });
     }).catch(function(e) {
         if (e && e.message === 'Esportazione annullata.') { showBusy(null); return; }
         exportError(e);
@@ -936,9 +940,14 @@ function bookletSheets(n) {
 // PDF imposto: due pagine per facciata, da stampare fronte-retro (lato corto) e piegare
 function exportLibrettoImposedPDF() {
     if (!pdfAvailable()) return;
-    showBusy('Imposizione del libretto…');
+    if (!collection.items.length) { alert('La raccolta è vuota.'); return; }
     var family = userSettings.fontFamily;
-    Promise.all([renderLibrettoForExport(), loadFontData(family)]).then(function(r) {
+    var name = collectionBaseName() + '-da-stampare.pdf', target;
+    chooseSaveFile(name).then(function(t) {
+        target = t;
+        showBusy('Imposizione del libretto…');
+        return Promise.all([renderLibrettoForExport(), loadFontData(family)]);
+    }).then(function(r) {
         var out = r[0], geom = out.geom;
         var pages = out.pages.map(function(p) { return p.svg; });
         while (pages.length % 4) pages.push(null);       // pagine bianche finali
@@ -959,8 +968,7 @@ function exportLibrettoImposedPDF() {
                     .then(function() { if (right) return drawSvgOnPdf(pdf, right.cloneNode(true), w, 0, w, h); });
             });
         });
-        return chain.then(function() {
-            pdf.save(collectionBaseName() + '-da-stampare.pdf');
+        return chain.then(function() { return writeBlob(target, pdfBlob(pdf), name); }).then(function() {
             showBusy(null);
             alert('PDF pronto: ' + sides.length / 2 + (sides.length === 2 ? ' foglio' : ' fogli') +
                   '. Stampa fronte-retro con capovolgimento sul lato corto, poi piega a metà.');
