@@ -1,21 +1,22 @@
 ﻿<!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
   <meta charset="utf-8">
   <title>Benedictus - GABC Editor</title>
   <link rel="icon" type="image/png" href="icona.png">
- 
+
   <link rel="stylesheet" type="text/css" href="style.css" />
   <script src="jquery.min.js" type="text/javascript"></script>
   <script src="jquery-ui-1.10.3.custom.min.js" type="text/javascript"></script>
- 
+
   <script src="jquery.hypher.js"></script>
- 
+  <script src="patterns/la-hypher.js"></script>
+
   <script src="jspdf.umd.min.js"></script>
+  <script src="svg2pdf.umd.min.js"></script>
   <script src="html2canvas.min.js"></script>
   <script src="exsurge.min.js"></script>
   <script src="saveSvgAsPng.js"></script>
-  <script src="patterns/la-hypher.js"></script>
 </head>
 <body class='sans'>
 
@@ -30,20 +31,149 @@
             <div style="width:100%;text-align:center;padding: 10px 0;">
                 <a href="#" id="lnkShowText">Visualizza Testo</a>
             </div>
-           
+
+            <!-- ===================== RACCOLTA / LIBRETTO ===================== -->
+            <details id="collection-panel">
+                <summary>Raccolta / Libretto <span id="collection-count"></span></summary>
+                <div class="coll-meta">
+                    <label>Titolo della raccolta
+                        <input type="text" id="coll-title" placeholder="es. Cantus selecti">
+                    </label>
+                    <label>Sottotitolo
+                        <input type="text" id="coll-subtitle" placeholder="es. ad usum chori">
+                    </label>
+                    <label class="span-2">Curatore e note in calce al frontespizio <span class="hk">(una riga per voce)</span>
+                        <textarea id="coll-editor" rows="2" placeholder="a cura di …&#10;Trento, 2026"></textarea>
+                    </label>
+                </div>
+                <div class="coll-toolbar">
+                    <button type="button" class="bn-btn small" id="coll-add-current" title="Aggiunge alla raccolta il brano presente nell'editor">+ Brano corrente</button>
+                    <button type="button" class="bn-btn small" id="coll-add-new">+ Nuovo brano</button>
+                    <button type="button" class="bn-btn small" id="coll-import" title="Importa uno o più file .gabc nella raccolta">Importa .gabc…</button>
+                    <button type="button" class="bn-btn small" id="coll-add-text" title="Rubriche, versetti, istruzioni">+ Testo</button>
+                    <button type="button" class="bn-btn small" id="coll-add-break">+ Interruzione di pagina</button>
+                </div>
+                <ol id="collection-list"></ol>
+                <div class="coll-footer">
+                    <span class="preview-switch">Anteprima:
+                        <label><input type="radio" name="preview-mode" value="piece" checked> brano</label>
+                        <label><input type="radio" name="preview-mode" value="libretto"> libretto</label>
+                    </span>
+                    <span>
+                        <a href="#" id="coll-open">Apri raccolta…</a> |
+                        <a href="#" id="coll-save">Salva raccolta</a> |
+                        <a href="#" id="coll-clear">Svuota</a>
+                    </span>
+                </div>
+                <input type="file" id="collection-gabc-input" accept=".gabc,.txt,text/plain" multiple style="display:none">
+                <input type="file" id="collection-file-input" accept=".benedictus,.json,application/json" style="display:none">
+            </details>
+
+            <!-- ===================== INTESTAZIONE (HEADER GABC) ===================== -->
+            <details id="header-panel" open>
+                <summary>Intestazione (header GABC)</summary>
+                <div class="header-grid">
+                    <label>Titolo <span class="hk">name</span>
+                        <input type="text" data-header="name" placeholder="es. Ut queant laxis">
+                    </label>
+                    <label>Tipo <span class="hk">office-part</span>
+                        <input type="text" data-header="office-part" list="office-part-list" placeholder="es. Hymnus">
+                    </label>
+                    <label>Modo <span class="hk">mode</span>
+                        <select data-header="mode">
+                            <option value=""></option>
+                            <option value="1">1 (I)</option><option value="2">2 (II)</option>
+                            <option value="3">3 (III)</option><option value="4">4 (IV)</option>
+                            <option value="5">5 (V)</option><option value="6">6 (VI)</option>
+                            <option value="7">7 (VII)</option><option value="8">8 (VIII)</option>
+                            <option value="per">peregrinus</option>
+                            <option value="irreg">irregolare</option>
+                        </select>
+                    </label>
+                    <label>Differentia <span class="hk">mode-differentia</span>
+                        <input type="text" data-header="mode-differentia" placeholder="es. G, a, c2">
+                    </label>
+                    <label>Annotazione 1 <span class="hk">annotation</span>
+                        <input type="text" data-header="annotation" data-index="0" placeholder="es. Hymn.">
+                    </label>
+                    <label>Annotazione 2 <span class="hk">annotation</span>
+                        <input type="text" data-header="annotation" data-index="1" placeholder="es. II">
+                    </label>
+                    <label>Commento <span class="hk">commentary</span>
+                        <input type="text" data-header="commentary" placeholder="es. Ps. 24, 1-3">
+                    </label>
+                    <label>Occasione <span class="hk">occasion</span>
+                        <input type="text" data-header="occasion" placeholder="es. In Nativitate S. Ioannis Baptistae">
+                    </label>
+                    <label>Fonte <span class="hk">manuscript</span>
+                        <input type="text" data-header="manuscript" placeholder="es. Graduale Romanum (1614)">
+                    </label>
+                    <label>Segnatura / carta <span class="hk">manuscript-reference</span>
+                        <input type="text" data-header="manuscript-reference" placeholder="es. f. 12r">
+                    </label>
+                    <label>Biblioteca <span class="hk">manuscript-storage-place</span>
+                        <input type="text" data-header="manuscript-storage-place" placeholder="es. I-Rvat">
+                    </label>
+                    <label>Trascrittore <span class="hk">transcriber</span>
+                        <input type="text" data-header="transcriber">
+                    </label>
+                    <label>Data trascrizione <span class="hk">transcription-date</span>
+                        <input type="text" data-header="transcription-date" placeholder="AAAA-MM-GG">
+                    </label>
+                    <label>Capolettera <span class="hk">initial-style</span>
+                        <select data-header="initial-style">
+                            <option value="">predefinito (1 rigo)</option>
+                            <option value="0">nessuno</option>
+                            <option value="1">1 rigo</option>
+                            <option value="2">2 righi</option>
+                        </select>
+                    </label>
+                    <label>Notazione <span class="hk">notation</span>
+                        <select data-header="notation">
+                            <option value="">quadrata</option>
+                            <option value="fractus">canto fratto (mensurale)</option>
+                        </select>
+                    </label>
+                    <label class="span-2">Note <span class="hk">user-notes</span>
+                        <input type="text" data-header="user-notes">
+                    </label>
+                </div>
+                <datalist id="office-part-list">
+                    <option value="Antiphona"><option value="Responsorium"><option value="Responsorium breve">
+                    <option value="Hymnus"><option value="Introitus"><option value="Graduale">
+                    <option value="Alleluia"><option value="Tractus"><option value="Sequentia">
+                    <option value="Offertorium"><option value="Communio"><option value="Kyrie">
+                    <option value="Gloria"><option value="Credo"><option value="Sanctus">
+                    <option value="Agnus Dei"><option value="Psalmus"><option value="Canticum">
+                    <option value="Versus"><option value="Varia">
+                </datalist>
+                <div class="header-actions">
+                    <span><a href="#" id="lnkFractusGuide" title="Come scrivere longa, brevis, semibrevis, minima e segni di mensura">Guida al canto fratto</a> |
+                    <a href="#" id="lnkAutoAnnotation" title="Compila le annotazioni da Tipo, Modo e Differentia">Annotazioni da tipo e modo</a></span>
+                    <span class="header-extra" id="header-extra-info"></span>
+                </div>
+            </details>
+
             <div id="editor-container">
                 <label for="editor">GABC Integrato</label>
+                <div id="active-item-badge" style="display:none"></div>
                 <textarea id="editor" spellcheck="false" style="width:100%; box-sizing: border-box; min-height: 300px;"></textarea>
+                <div id="gabc-status" aria-live="polite"></div>
             </div>
-            
+
             <div style="width:100%;text-align:center;padding: 10px 0;">
-                <span style="font-family: 'Garamond Premier Pro', Garamond, serif; font-size: 0.95em;">Raggruppa Strofe</span>
+                <span style="font-size: 0.95em;">Raggruppa Strofe</span>
                 <input type="checkbox" id="group-verses-toggle" style="cursor: pointer;">
             </div>
 
-            <div class="quick-links" style="margin-top: 10px; margin-bottom: 20px; text-align:center;">
+            <div class="quick-links" style="margin-top: 10px; margin-bottom: 6px; text-align:center;">
                 <a href="#" id="lnkCopyGabc">Copia GABC</a> |
-                <a href="#" id="lnkDownloadGabc">Scarica .gabc</a>
+                <a href="#" id="lnkDownloadGabc">Scarica .gabc</a> |
+                <a href="#" id="lnkImportGabc">Importa .gabc</a>
+                <input type="file" id="gabc-file-input" accept=".gabc,.txt,text/plain" style="display:none">
+            </div>
+            <div class="quick-links" style="margin-bottom: 20px; text-align:center;">
+                <a href="#" id="lnkSkeleton">Genera struttura GABC da testo</a>
             </div>
 
             <div id="chant-parent2">
@@ -96,41 +226,139 @@
         <div class="slider-container">
             <input type="range" id="spacingSlider" min="0.2" max="2.0" step="0.1" value="0.8">
         </div>
+        <label for="lineSpacingSlider">Interlinea tra i righi: <span id="lineSpacingVal">1.5</span></label>
+        <div class="slider-container">
+            <input type="range" id="lineSpacingSlider" min="0.5" max="5" step="0.25" value="1.5">
+        </div>
         <label for="dropCapSlider">Dimensione Capolettera: <span id="dropCapVal">1.0</span></label>
         <div class="slider-container">
             <input type="range" id="dropCapSlider" min="0.5" max="2.0" step="0.1" value="1.0">
         </div>
-	<label for="lyricSizeSlider">Dimensione Testo: <span id="lyricSizeVal">17</span></label>
-	<div class="slider-container">
-    	    <input type="range" id="lyricSizeSlider" min="10" max="32" step="1" value="17">
-	</div>
+        <label for="lyricSizeSlider">Dimensione Testo: <span id="lyricSizeVal">17</span></label>
+        <div class="slider-container">
+            <input type="range" id="lyricSizeSlider" min="10" max="32" step="1" value="17">
+        </div>
     </div>
-   
+
     <div class="sidebar-section" style="text-align: center;">
         <h3>Font Testo</h3>
         <select id="text-font" style="width: 100%; padding: 5px;">
-            <option value="Garamond Premier Pro">Garamond (Predefinito)</option>
-            <option value="Book Antiqua">Book Antiqua</option>
-            <option value="Times New Roman">Times New Roman</option>
-            <option value="Arial">Arial</option>
-            <option value="Palatino">Palatino</option>
+            <option value="EB Garamond" selected>EB Garamond (Predefinito)</option>
+            <option value="Cardo">Cardo</option>
+            <option value="Junicode">Junicode</option>
+            <option value="Libertinus Serif">Libertinus Serif</option>
         </select>
+    </div>
+
+    <div class="sidebar-section" style="text-align: center;">
+        <h3>Stile della Notazione</h3>
+        <div class="field-row">
+            <label for="custos-style">Custos</label>
+            <select id="custos-style">
+                <option value="standard" selected>moderno</option>
+                <option value="obliquo">obliquo (stampe rinascimentali)</option>
+            </select>
+        </div>
+        <div class="field-row">
+            <label for="minima-stems" title="Canto fratto">Cauda delle minime</label>
+            <select id="minima-stems">
+                <option value="up" selected>sempre in su</option>
+                <option value="auto">secondo l'altezza</option>
+            </select>
+        </div>
+        <div class="btn-group" style="margin-top: 10px;">
+            <button id="btnFractusGuide" class="btn-export" title="Come si scrive il canto fratto in GABC">Guida al canto fratto</button>
+        </div>
+    </div>
+
+    <div class="sidebar-section" style="text-align: center;">
+        <h3>Impaginazione</h3>
+        <div class="control-row">
+            <label for="page-view-toggle">Anteprima a pagine</label>
+            <input type="checkbox" id="page-view-toggle" checked>
+        </div>
+        <div class="field-row">
+            <label for="paper-size">Formato</label>
+            <select id="paper-size">
+                <option value="a4" selected>A4 (210×297)</option>
+                <option value="a5">A5 (148×210)</option>
+                <option value="b5">B5 (176×250)</option>
+                <option value="letter">Letter (216×279)</option>
+                <option value="legal">Legal (216×356)</option>
+            </select>
+        </div>
+        <div class="field-row">
+            <label for="paper-orientation">Orientamento</label>
+            <select id="paper-orientation">
+                <option value="portrait" selected>Verticale</option>
+                <option value="landscape">Orizzontale</option>
+            </select>
+        </div>
+        <div class="margin-grid">
+            <label>Sup. (mm)<input type="number" id="margin-top" min="0" max="80" step="1" value="20"></label>
+            <label>Inf. (mm)<input type="number" id="margin-bottom" min="0" max="80" step="1" value="20"></label>
+            <label title="Margine interno con i margini speculari del libretto">Sin. / int. (mm)<input type="number" id="margin-left" min="0" max="80" step="1" value="18"></label>
+            <label title="Margine esterno con i margini speculari del libretto">Des. / est. (mm)<input type="number" id="margin-right" min="0" max="80" step="1" value="18"></label>
+        </div>
+        <div class="control-row">
+            <label for="page-numbers-toggle">Numeri di pagina</label>
+            <input type="checkbox" id="page-numbers-toggle" checked>
+        </div>
+        <p class="hint">Per forzare un a capo nel GABC usa <code>(z)</code>.</p>
+        <div id="page-info" class="hint"></div>
+    </div>
+
+    <div class="sidebar-section" style="text-align: center;">
+        <h3>Intestazione Stampata</h3>
+        <div class="control-row"><label for="show-title">Titolo (name)</label><input type="checkbox" id="show-title" checked></div>
+        <div class="control-row"><label for="show-subtitle">Tipo e modo</label><input type="checkbox" id="show-subtitle"></div>
+        <div class="control-row"><label for="show-occasion">Occasione (sopratitolo)</label><input type="checkbox" id="show-occasion" checked></div>
+        <div class="control-row"><label for="show-commentary">Commento (a destra)</label><input type="checkbox" id="show-commentary" checked></div>
+        <div class="control-row"><label for="show-source">Fonte (a sinistra)</label><input type="checkbox" id="show-source"></div>
+        <label for="titleSizeSlider">Dimensione Titolo: <span id="titleSizeVal">24</span></label>
+        <div class="slider-container">
+            <input type="range" id="titleSizeSlider" min="12" max="48" step="1" value="24">
+        </div>
+    </div>
+
+    <div class="sidebar-section" style="text-align: center;">
+        <h3>Libretto</h3>
+        <div class="control-row"><label for="lib-front">Frontespizio</label><input type="checkbox" id="lib-front" checked></div>
+        <div class="control-row"><label for="lib-blank">Retro del frontespizio bianco</label><input type="checkbox" id="lib-blank" checked></div>
+        <div class="control-row"><label for="lib-toc">Indice</label><input type="checkbox" id="lib-toc" checked></div>
+        <div class="field-row">
+            <label for="lib-toc-order">Ordine indice</label>
+            <select id="lib-toc-order">
+                <option value="collection">come la raccolta</option>
+                <option value="alpha">alfabetico</option>
+            </select>
+        </div>
+        <div class="control-row"><label for="lib-newpage">Ogni brano su nuova pagina</label><input type="checkbox" id="lib-newpage"></div>
+        <div class="control-row"><label for="lib-heads">Testatine</label><input type="checkbox" id="lib-heads" checked></div>
+        <div class="control-row"><label for="lib-mirrored">Margini speculari</label><input type="checkbox" id="lib-mirrored" checked></div>
+        <div class="btn-group" style="margin-top: 10px;">
+            <button id="export-libretto-pdf" class="btn-export" title="Pagine in ordine di lettura">PDF libretto</button>
+            <button id="export-libretto-imposed" class="btn-export" title="Due pagine per foglio, da stampare fronte-retro e piegare">PDF da stampare</button>
+        </div>
+        <p class="hint">Formato, margini e dimensioni si impostano in <em>Impaginazione</em>. Per un libretto A5 scegli A5:
+        "PDF da stampare". Lo dispone su fogli A4 da stampare fronte-retro (lato corto) e piegare a metà.</p>
     </div>
 
     <div class="sidebar-section" style="text-align: center;">
         <h3>Esportazione Avanzata</h3>
         <div class="btn-group">
-            <button id="export-png-full" class="btn-export">PNG (Intero)</button>
+            <button id="export-png-full" class="btn-export" title="Una immagine per ogni pagina">PNG (Pagine)</button>
             <button id="export-png-cropped" class="btn-export">PNG (Ritagliato)</button>
         </div>
         <div class="btn-group" style="margin-top: 5px;">
-            
-            <button id="export-svg-cropped" class="btn-export">SVG</button>
+            <button id="export-svg-full" class="btn-export" title="Un file SVG per ogni pagina">SVG (Pagine)</button>
+            <button id="export-svg-cropped" class="btn-export">SVG (Ritagliato)</button>
         </div>
         <div class="btn-group" style="margin-top: 5px;">
-            <button id="export-pdf-full" class="btn-export">PDF A4</button>
-            <button id="export-pdf-cropped" class="btn-export">PDF (Ritagliato)</button>
+            <button id="export-pdf-full" class="btn-export" title="PDF vettoriale con font incorporati">PDF (Pagine)</button>
+            <button id="export-pdf-cropped" class="btn-export" title="PDF vettoriale ritagliato sul contenuto">PDF (Ritagliato)</button>
         </div>
+        
     </div>
 
     <div class="sidebar-section" style="text-align: center;">
@@ -139,5 +367,7 @@
 </div>
 
 <script src="app.js"></script>
+<script src="collection.js"></script>
+<script src="fractus.js"></script>
 </body>
 </html>
