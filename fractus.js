@@ -13,6 +13,13 @@
 //   g.     punctum additionis (mora)
 //   <alt>C</alt>()  segno di mensura sul rigo: C, ¢ (o C|), O, O|, 3, C3, ¢3, 3/2
 //
+// Pause (la "p" non è usata dal GABC di Benedictus):
+//   pv     pausa di longa
+//   p      pausa di brevis
+//   P      pausa di semibrevis
+//   ps/Ps  pausa di minima
+//   po/Po  pausa di semiminima
+//
 // Nel canto fratto ogni figura è una nota a sé: all'interno di un gruppo
 // le note mensurali vengono separate automaticamente (non si formano
 // neumi discendenti come nel climacus).
@@ -60,13 +67,77 @@ function fractusNoteStarts(inner) {
         var core = inner.slice(s.pos, end).replace(/^[a-mA-M][xy#]/, '');
         var letter = core.charAt(0);
         var mods = core.slice(1).replace(/\[[^\]]*\]/g, '');
-        s.mensural = /[A-M]/.test(letter) || /[so]/.test(mods);
+        s.mensural = /[A-M]/.test(letter) || /[so]/.test(mods) || /\[bnrest:/.test(core);
     });
     return starts;
 }
 
+// Pause: p, pv, P, ps, po → nota segnaposto con attributo [bnrest:..], poi ridisegnata.
+// La nota segnaposto prende l'altezza della nota reale successiva, così il custos
+// a fine riga indica la nota giusta e non la pausa.
+var FRACTUS_REST_KINDS = { L: 'longa', B: 'brevis', S: 'semibrevis', M: 'minima', SM: 'semiminima' };
+
+function fractusRestKind(token) {
+    var mod = token.charAt(1);
+    if (mod === 'v') return 'L';
+    if (mod === 's') return 'M';
+    if (mod === 'o') return 'SM';
+    return token.charAt(0) === 'P' ? 'S' : 'B';
+}
+
+function fractusReplaceRests(body) {
+    if (!/[pP]/.test(body)) return body;
+    var groups = [], seq = [];
+    body.replace(/\(([^()]*)\)/g, function(all, inner, off) {
+        groups.push({ inner: inner, off: off, len: all.length, rests: [] });
+        return all;
+    });
+    groups.forEach(function(g) {
+        if (/^\s*[cf]b?[1-5]\s*$/i.test(g.inner)) return;          // chiave
+        var s = g.inner, i = 0;
+        while (i < s.length) {
+            var ch = s[i];
+            if (ch === '[') {
+                var j = s.indexOf(']', i);
+                i = j < 0 ? s.length : j + 1;
+                continue;
+            }
+            if (ch === 'p' || ch === 'P') {
+                var tok = /^[pP][vso]?/.exec(s.slice(i))[0];
+                var r = { pos: i, len: tok.length, kind: fractusRestKind(tok), pitch: null };
+                g.rests.push(r);
+                seq.push(r);
+                i += tok.length;
+                continue;
+            }
+            if (isPitchLetter(ch)) seq.push({ pitch: ch.toLowerCase(), real: true });
+            i++;
+        }
+    });
+    // altezza della nota reale successiva (dentro il rigo, senza tagli addizionali)
+    var next = 'g';
+    for (var k = seq.length - 1; k >= 0; k--) {
+        if (seq[k].real) { next = /[c-k]/.test(seq[k].pitch) ? seq[k].pitch : 'g'; continue; }
+        seq[k].pitch = next;
+    }
+    var out = '', last = 0;
+    groups.forEach(function(g) {
+        if (!g.rests.length) return;
+        var inner = '', p0 = 0;
+        g.rests.forEach(function(r) {
+            inner += g.inner.slice(p0, r.pos) + r.pitch + '[bnrest:' + r.kind + ']';
+            p0 = r.pos + r.len;
+        });
+        inner += g.inner.slice(p0);
+        out += body.slice(last, g.off) + '(' + inner + ')';
+        last = g.off + g.len;
+    });
+    return out + body.slice(last);
+}
+
 // Inserisce "/" tra le note mensurali di uno stesso gruppo
 function fractusPreprocess(body) {
+    body = fractusReplaceRests(body);
     // spazio per i segni di mensura: <alt>C3</alt>() → note segnaposto (quilisma, poi nascoste)
     body = body.replace(/<alt>\s*([^<]*?)\s*<\/alt>\s*\(\s*\)/g, function(all, sign) {
         if (!FRACTUS_SIGN_RE.test(sign)) return all;
@@ -159,6 +230,8 @@ function applyFractus(svg, score, colors, staffInterval) {
 
         notes.forEach(function(note) {
             if (ligatureNotes.indexOf(note) >= 0) return;
+            var restM = /\[bnrest:(L|B|S|M|SM)\]/.exec(note.sourceGabc || '');
+            if (restM) { drawFractusRest(note, restM[1], colors, si, stemW); return; }
             var gabc = (note.sourceGabc || '').replace(/\[[^\]]*\]/g, '');
             var core = gabc.replace(/^[a-mA-M][xy#]/, '');
             var mods = core.slice(1);
@@ -243,6 +316,57 @@ function applyFractus(svg, score, colors, staffInterval) {
             t.parentNode.appendChild(bar);
         }
     });
+}
+
+// Pause mensurali, rispetto alle linee del rigo (4 linee: posizioni -3, -1, 1, 3;
+// 0 = spazio centrale; una posizione = staffInterval)
+//   longa       da linea a linea, due spazi
+//   brevis      da linea a linea, uno spazio (spazio centrale)
+//   semibrevis  appesa alla 3ª linea, mezzo spazio
+//   minima      poggiata sulla 2ª linea, mezzo spazio
+//   semiminima  come la minima, con uncino in alto verso destra
+function drawFractusRest(note, kind, colors, si, stemW) {
+    var use = note.svgNode;
+    if (!use || !use.parentNode) return;
+    var parent = use.parentNode;
+    var bb = use.getBBox();
+    var cx = bb.x + bb.width / 2;
+    var yNote = parseFloat(use.getAttribute('y'));
+    if (isNaN(yNote)) yNote = bb.y + bb.height / 2;
+    var yC = yNote + (note.staffPosition || 0) * si;            // centro del rigo
+    function Y(pos) { return yC - pos * si; }
+    var w = stemW || Math.max(1, si * 0.16);                    // come la cauda della minima
+    // longa e brevis un po' più spesse, per non confonderle con le stanghette
+    if (kind === 'L' || kind === 'B') w = Math.max(w * 1.8, si * 0.34);
+    var x0 = cx - w / 2, x1 = cx + w / 2;
+    var top, bottom;
+    switch (kind) {
+        case 'L':  top = 3; bottom = -1; break;
+        case 'B':  top = 1; bottom = -1; break;
+        case 'S':  top = 1; bottom = 0; break;
+        default:   top = 0; bottom = -1; break;                     // minima, semiminima
+    }
+    var d;
+    if (kind === 'SM') {
+        // asta sottile poggiata sulla linea, uncino obliquo in alto a destra
+        var sx0 = cx - w / 2, sx1 = cx + w / 2;
+        var yt = Y(0.35), yb = Y(-1), hx = si * 0.9, hy = si * 0.4;
+        d = 'M' + sx0 + ',' + yb + ' L' + sx0 + ',' + yt +
+            ' L' + (sx0 + hx) + ',' + (yt - hy) +
+            ' L' + (sx0 + hx) + ',' + (yt - hy + w * 1.1) +
+            ' L' + sx1 + ',' + (yt + w * 1.1) +
+            ' L' + sx1 + ',' + yb + ' Z';
+    } else {
+        d = 'M' + x0 + ',' + Y(top) + ' L' + x1 + ',' + Y(top) +
+            ' L' + x1 + ',' + Y(bottom) + ' L' + x0 + ',' + Y(bottom) + ' Z';
+    }
+    var path = document.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill', colors.ink);
+    path.setAttribute('stroke', 'none');
+    path.setAttribute('class', 'bn-fractus-rest');
+    parent.insertBefore(path, use);
+    parent.removeChild(use);
 }
 
 // Nel testo del motore: la nota in posizione idx è seguita da "@"? (con eventuali s / v)
@@ -378,6 +502,14 @@ var FRACTUS_GUIDE_FIGURES = [
       gabcNote: 'È la mora; si può aggiungere a ogni figura: g. G. Gs.' }
 ];
 
+var FRACTUS_GUIDE_RESTS = [
+    { name: 'Pausa di longa', gabc: 'pv', ex: 'pv' },
+    { name: 'Pausa di brevis', gabc: 'p', ex: 'p' },
+    { name: 'Pausa di semibrevis', gabc: 'P', ex: 'P' },
+    { name: 'Pausa di minima', gabc: 'ps', ex: 'ps' },
+    { name: 'Pausa di semiminima', gabc: 'po', ex: 'po' }
+];
+
 var FRACTUS_GUIDE_PATTERNS = [
     { name: 'Semibreve puntata + minima', gabc: '(G.) (Gs)', ex: 'G.) (Gs' },
     { name: 'Due minime + semibreve', gabc: '(Hs) (Gs) (F)', ex: 'Hs) (Gs) (F' },
@@ -460,6 +592,10 @@ function showFractusGuide() {
                '<td class="fg-ex" data-fractus-ex="' + escapeHtmlFr(f.ex) + '"></td>' +
                '<td class="fg-small">' + f.gabcNote + '</td></tr>';
     }).join('');
+    var restRows = FRACTUS_GUIDE_RESTS.map(function(r) {
+        return '<tr><td><strong>' + r.name + '</strong></td><td>' + code('(' + r.gabc + ')') + '</td>' +
+               '<td class="fg-ex" data-fractus-ex="' + escapeHtmlFr(r.ex) + '"></td></tr>';
+    }).join('');
     var patRows = FRACTUS_GUIDE_PATTERNS.map(function(p) {
         return '<tr><td>' + p.name + '</td><td>' + code(p.gabc) + '</td>' +
                '<td class="fg-ex" data-fractus-ex="' + escapeHtmlFr(p.ex) + '"' +
@@ -496,22 +632,30 @@ function showFractusGuide() {
         '<table class="fractus-table"><thead><tr><th>Figura</th><th>GABC</th><th>Resa</th><th>Rispetto al solito</th></tr></thead>' +
         '<tbody>' + figRows + '</tbody></table>' +
 
-        '<h3>4. Formule frequenti</h3>' +
+        '<h3>4. Le pause</h3>' +
+        '<p>La lettera ' + code('p') + ' (pausa) prende il posto della nota, con le stesse varianti delle figure: ' +
+        code('v') + ' per la longa, maiuscola per la semibrevis, ' + code('s') + ' e ' + code('o') + ' per minima e semiminima. ' +
+        'La pausa si scrive in un gruppo proprio, di solito senza sillaba: ' + code('(g) (p) (h)') +
+        '. La posizione sul rigo è fissa e non dipende dalla chiave.</p>' +
+        '<table class="fractus-table"><thead><tr><th>Pausa</th><th>GABC</th><th>Resa</th></tr></thead>' +
+        '<tbody>' + restRows + '</tbody></table>' +
+
+        '<h3>5. Formule frequenti</h3>' +
         '<table class="fractus-table"><thead><tr><th>Formula</th><th>GABC</th><th>Resa</th></tr></thead>' +
         '<tbody>' + patRows + '</tbody></table>' +
 
-        '<h3>5. Altri accorgimenti</h3>' +
+        '<h3>6. Altri accorgimenti</h3>' +
         '<ul>' +
         '<li><strong>Iniziali rosse nel testo</strong> (come nelle stampe): ' + code('<c>E</c>t(f) in(g)') + '.</li>' +
         '<li><strong>Direzione della cauda delle minime</strong>: in <em>Stile della notazione</em> (sempre in su, come nelle ' +
         'edizioni a stampa, oppure secondo l\'altezza). ' + code('Gv') + ' dà sempre la cauda in giù.</li>' +
         '<li><strong>Custos obliquo</strong> e <strong>rigo rosso</strong>: in <em>Stile della notazione</em> e <em>Colori</em>.</li>' +
         '<li><strong>Compatibilità</strong>: il file resta GABC valido. Gregorio e gli altri editor mostreranno le stesse note ' +
-        'in notazione quadrata (virga, stropha, oriscus, inclinatum).</li>' +
-        '<li><strong>Limiti</strong>: la spaziatura non è proporzionale alla durata; non sono previste pause né note bianche.</li>' +
+        'in notazione quadrata (virga, stropha, oriscus, inclinatum); la ' + code('p') + ' delle pause, per Gregorio, è una nota molto acuta.</li>' +
+        '<li><strong>Limiti</strong>: la spaziatura non è proporzionale alla durata; non sono previste note bianche.</li>' +
         '</ul>' +
 
-        '<h3>6. Esempio da una fonte</h3>' +
+        '<h3>7. Esempio da una fonte</h3>' +
         '<p>Credo, <em>Patrem omnipotentem</em>, dal Graduale stampato a Venezia da Giunta (1499-1500), f. CCCL.</p>' +
         '<pre class="fg-pre">' + escapeHtmlFr(FRACTUS_SOURCE_EXAMPLE) + '</pre>' +
 

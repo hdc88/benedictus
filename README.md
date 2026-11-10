@@ -36,7 +36,8 @@ Progetto sviluppato da **Enrico Correggia** all'interno del progetto PRIN 2022 M
   disegnate come figure mensurali: brevis `g`, longa `gv`, semibrevis `G`, minima `gs`/`Gs`,
   semiminima `go`/`Go`, punctum additionis `g.`, segni di mensura sul rigo con
   `<alt>C3</alt>()` (C, ¢, O, 3, C3, ¢3, 3/2…), rombo con gambo in giù `Gv`, rombi accostati
-  `G!H`. Il file resta GABC valido; guida integrata
+  `G!H`, pause di longa `pv`, brevis `p`, semibrevis `P`, minima `ps`, semiminima `po`.
+  Il file resta GABC valido; guida integrata
 - **Stile della notazione**: custos obliquo delle stampe veneziane (es. Graduale Giunta,
   1499-1500) e direzione del gambo delle minime (sempre in su o secondo l'altezza)
 - Controllo sintattico (parentesi non chiuse, chiave mancante) con riga e colonna
